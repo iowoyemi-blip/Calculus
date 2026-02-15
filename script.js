@@ -2,6 +2,7 @@ const topicNames = {
   limits: "Limits",
   derivatives: "Derivatives",
   integrals: "Integrals",
+  analysis: "Function Analysis",
 };
 
 const state = {
@@ -12,6 +13,7 @@ const state = {
     limits: { correct: 0, total: 0 },
     derivatives: { correct: 0, total: 0 },
     integrals: { correct: 0, total: 0 },
+    analysis: { correct: 0, total: 0 },
   },
 };
 
@@ -122,6 +124,16 @@ function formatQuadraticTex(a, b, c) {
     expression += c > 0 ? `+${c}` : `-${Math.abs(c)}`;
   }
   return expression;
+}
+
+function formatSignedTermTex(coef, body) {
+  if (coef === 0) {
+    return "";
+  }
+  const sign = coef > 0 ? "+" : "-";
+  const absCoef = Math.abs(coef);
+  const coefPart = absCoef === 1 && body !== "" ? "" : `${absCoef}`;
+  return `${sign}${coefPart}${body}`;
 }
 
 function buildChoices(correct, distractors) {
@@ -391,10 +403,97 @@ function integralDefiniteLinear() {
   );
 }
 
+function analysisCriticalNumber() {
+  const a = choice([-4, -3, -2, -1, 1, 2, 3, 4]);
+  const h = randomInt(-5, 5);
+  const k = randomInt(-6, 6);
+  const shift = formatXMinusTex(h);
+  const constantTerm = formatSignedTermTex(k, "");
+  const functionTex = `${a}\\left(${shift}\\right)^2${constantTerm}`;
+  const correctTex = `${h}`;
+
+  return makeQuestion(
+    `For ${texInline(`f(x)=${functionTex}`)}, find the critical number of ${texInline("f")}.`,
+    correctTex,
+    [`${h + 1}`, `${h - 1}`, `${-h}`],
+    `Differentiate: ${texInline(`f'(x)=${2 * a}\\left(${shift}\\right)`)}. Set ${texInline(
+      "f'(x)=0"
+    )}, so ${texInline(`${shift}=0`)} and therefore ${texInline(`x=${h}`)}.`
+  );
+}
+
+function analysisExtremumType() {
+  const a = choice([-5, -4, -3, -2, 2, 3, 4, 5]);
+  const h = randomInt(-4, 4);
+  const k = randomInt(-5, 5);
+  const shift = formatXMinusTex(h);
+  const constantTerm = formatSignedTermTex(k, "");
+  const functionTex = `${a}\\left(${shift}\\right)^2${constantTerm}`;
+  const correctTex = a > 0 ? "\\text{local minimum}" : "\\text{local maximum}";
+  const opposite = a > 0 ? "\\text{local maximum}" : "\\text{local minimum}";
+
+  return makeQuestion(
+    `For ${texInline(`f(x)=${functionTex}`)}, classify the critical point at ${texInline(`x=${h}`)}.`,
+    correctTex,
+    [opposite, "\\text{neither max nor min}", "\\text{point of inflection}"],
+    `At ${texInline(`x=${h}`)}, ${texInline("f'(x)=0")}. The second derivative is ${texInline(
+      `f''(x)=${2 * a}`
+    )}. Since ${texInline(`f''(x) ${a > 0 ? ">" : "<"} 0`)}, the point is a ${texInline(correctTex)}.`
+  );
+}
+
+function analysisIncreasingIntervals() {
+  const p = randomInt(1, 5);
+  const negP = -p;
+  const functionTex = `x^3-${3 * p * p}x`;
+  const correctTex = `(-\\infty,${negP})\\cup(${p},\\infty)`;
+
+  return makeQuestion(
+    `For ${texInline(`f(x)=${functionTex}`)}, on which interval(s) is ${texInline("f")} increasing?`,
+    correctTex,
+    [
+      `(${negP},${p})`,
+      `(-\\infty,${p})`,
+      `(-\\infty,${negP})\\cup(${negP},${p})`,
+    ],
+    `Compute ${texInline(`f'(x)=3x^2-${3 * p * p}=3(x-${p})(x+${p})`)}. The derivative is positive for ${texInline(
+      `x<${negP}`
+    )} and ${texInline(`x>${p}`)}, so ${texInline("f")} increases on ${texInline(correctTex)}.`
+  );
+}
+
+function analysisConcavity() {
+  const a = choice([-9, -6, -3, 0, 3, 6, 9]);
+  const b = randomInt(-6, 6);
+  const c = randomInt(-6, 6);
+  const functionTex = `x^3${formatSignedTermTex(a, "x^2")}${formatSignedTermTex(
+    b,
+    "x"
+  )}${formatSignedTermTex(c, "")}`;
+  const rawInflectionX = -a / 3;
+  const inflectionX = Object.is(rawInflectionX, -0) ? 0 : rawInflectionX;
+  const correctTex = `(${inflectionX},\\infty)`;
+
+  return makeQuestion(
+    `For ${texInline(`f(x)=${functionTex}`)}, where is the graph concave up?`,
+    correctTex,
+    [`(-\\infty,${inflectionX})`, "(-\\infty,\\infty)", `(${inflectionX - 1},\\infty)`],
+    `Use ${texInline(`f''(x)=6x+${2 * a}`)}. Concavity up means ${texInline(
+      "f''(x)>0"
+    )}, so ${texInline(`x>${inflectionX}`)}. Therefore the interval is ${texInline(correctTex)}.`
+  );
+}
+
 const generators = {
   limits: [limitDifferenceQuotient, limitTrig, limitLeadingCoefficients, limitRationalize],
   derivatives: [derivativePowerRule, derivativeChainRule, derivativeTrig, derivativeExponential],
   integrals: [integralPowerRule, integralTrig, integralDefiniteLinear],
+  analysis: [
+    analysisCriticalNumber,
+    analysisExtremumType,
+    analysisIncreasingIntervals,
+    analysisConcavity,
+  ],
 };
 
 function generateQuestion(topic) {
